@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title> Snake 🐍</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg-deep: #0a0c15;
+            --bg-surface: #11161f;
+            --glass-card: rgba(30, 41, 59, 0.75);
+            --premium-gold-start: #fbbf24;
+            --premium-gold-end: #f59e0b;
+            --neon-green: #4ade80;
+            --neon-red: #ff4d4d;
+            --text-glow: 0 0 8px rgba(251, 191, 36, 0.6);
+            --border-glow: 0 0 12px rgba(251, 191, 36, 0.3);
+            --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            background: radial-gradient(circle at 10% 20%, #121826, #02040c);
+            color: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(circle at 20% 40%, rgba(251, 191, 36, 0.08) 2px, transparent 2px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        #statusBanner {
+            background: linear-gradient(95deg, #dc2626, #b91c1c);
+            color: white;
+            text-align: center;
+            padding: 12px;
+            font-weight: 800;
+            font-size: 14px;
+            letter-spacing: 1px;
+            backdrop-filter: blur(10px);
+            position: fixed;
+            top: 0;
+            width: 100%;
+            max-width: 500px;
+            z-index: 2000;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.4);
+            border-bottom: 1px solid #ff8a8a;
+            display: none;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            padding: 18px 16px 90px 16px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 5;
+        }
+
+        .card {
+            background: rgba(18, 25, 45, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 2rem;
+            padding: 1.5rem;
+            border: 1px solid rgba(251, 191, 36, 0.25);
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.4);
+            transition: transform 0.2s ease;
+        }
+
+        .btn-premium {
+            background: linear-gradient(105deg, #fbbf24, #f59e0b);
+            border: none;
+            padding: 16px 20px;
+            border-radius: 60px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            color: #0c0a1a;
+            width: 100%;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
+            transition: all 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        }
+        .btn-premium:active { transform: scale(0.97); }
+        .btn-premium:disabled {
+            background: #2d3a4e;
+            box-shadow: none;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(4px);
+            border-radius: 1.5rem;
+            padding: 12px 8px;
+            text-align: center;
+            border: 1px solid rgba(251, 191, 36, 0.4);
+            flex: 1;
+            margin: 0 6px;
+        }
+        .stat-box small { font-size: 11px; opacity: 0.7; letter-spacing: 0.5px; }
+        .stat-box div { font-weight: 800; font-size: 1.4rem; color: #fbbf24; text-shadow: 0 0 5px #ffb347; }
+
+        /* Game Canvas styling */
+        .game-canvas-wrapper {
+            display: flex;
+            justify-content: center;
+            margin: 15px 0;
+        }
+        canvas {
+            background: #0a0f1a;
+            border-radius: 24px;
+            box-shadow: 0 20px 30px -10px black;
+            border: 2px solid rgba(251, 191, 36, 0.4);
+            width: 100%;
+            height: auto;
+            cursor: crosshair;
+        }
+        #timerText {
+            font-family: monospace;
+            font-size: 1rem;
+            font-weight: bold;
+            text-align: center;
+            background: #0a0f1a;
+            display: inline-block;
+            width: auto;
+            margin: 12px auto;
+            padding: 6px 14px;
+            border-radius: 50px;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 32px);
+            max-width: 460px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(20px);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 6px;
+            border-radius: 60px;
+            border: 1px solid rgba(251, 191, 36, 0.5);
+            box-shadow: 0 20px 35px -10px black;
+            z-index: 100;
+        }
+        .nav-item {
+            color: #7e8ba3;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 600;
+            flex: 1;
+            cursor: pointer;
+            padding: 6px 0;
+            border-radius: 40px;
+            transition: 0.1s;
+        }
+        .nav-item i { font-size: 22px; display: block; margin-bottom: 4px; }
+        .nav-item.active { background: rgba(251, 191, 36, 0.2); color: #fbbf24; text-shadow: 0 0 3px gold; }
+
+        .prize-tag { font-size: 10px; padding: 4px 10px; border-radius: 20px; font-weight: 800; }
+        .tag-win { background: linear-gradient(145deg, #059669, #047857); color: white; box-shadow: 0 2px 6px #0a5c3e; }
+        .tag-lock { background: #1e293b; color: #94a3b8; border: 1px dashed #fbbf24; }
+
+        .leader-item {
+            background: rgba(15, 23, 42, 0.6);
+            margin: 8px 0;
+            padding: 12px 15px;
+            border-radius: 60px;
+            backdrop-filter: blur(4px);
+            border: 1px solid #334155;
+        }
+        .m-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+        }
+        .m-table th { color: #fbbf24; font-weight: 700; font-size: 12px; padding-bottom: 6px; }
+        .m-table td { padding: 12px 4px; background: #0f172a80; border-radius: 18px; }
+
+        .logout-btn {
+            background: #dc2626;
+            border-radius: 20px;
+            border: none;
+            padding: 10px 30px;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            float: right;
+        }
+        input {
+            background: #0c1220;
+            border: 1.5px solid #334155;
+            border-radius: 60px;
+            padding: 14px 18px;
+            color: white;
+            font-size: 1rem;
+            width: 100%;
+            outline: none;
+        }
+        input:focus { border-color: #fbbf24; box-shadow: 0 0 8px #fbbf24; }
+        .get-pass-link { display: inline-block; background: #1e293b; padding: 8px 18px; border-radius: 40px; margin-top: 15px; font-weight: bold; color: #fbbf24; text-decoration: none; font-size: 0.85rem; }
+        .hidden { display: none; }
+        .active-milestone { background: linear-gradient(115deg, #fbbf2410, #1e293b); border-radius: 30px; padding: 14px; border-left: 4px solid #fbbf24; }
+        .gift-card { background: linear-gradient(135deg, #065f46, #022c22); border-radius: 2rem; margin: 14px 0; padding: 20px; text-align: center; border: 1px solid #fbbf24; cursor: pointer; transition: transform 0.1s; }
+        .gift-card:active { transform: scale(0.98); }
+        .code-block { font-size: 22px; font-family: monospace; background: #00000066; border-radius: 18px; padding: 10px; margin-top: 12px; user-select: all; }
+        .copy-toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #22c55e; color: #020617; font-weight: bold; padding: 8px 20px; border-radius: 60px; z-index: 3000; font-size: 14px; animation: fadeToast 1.5s ease forwards; pointer-events: none; }
+        @keyframes fadeToast { 0% { opacity: 0; transform: translateX(-50%) translateY(20px); } 15% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; transform: translateX(-50%) translateY(-15px); } }
+        .click-hint { font-size: 11px; background: #fbbf2420; display: inline-block; padding: 2px 12px; border-radius: 30px; margin-top: 6px; }
+    </style>
+</head>
+<body>
+<div id="statusBanner"><i class="fas fa-skull-crosswalk"></i> SESSION LOCKED – COME BACK DURING OPEN HOURS</div>    
+<div id="loginPage" class="container">
+    <div class="card" style="margin-top: 60px; text-align: center;">
+        <div style="font-size: 64px;">🐍</div>
+        <h2 style="background: linear-gradient(135deg, #FBBF24, #FFD966); -webkit-background-clip: text; background-clip: text; color: transparent;">SNAKE BIT </h2>
+        <p style="color:#a0b3d9;"> Get high score win play store redeem code</p>
+        <input type="password" id="passInput" placeholder="✦ ENTER PASSWORD ✦">
+        <button class="btn-premium" onclick="login()"><i class="fas fa-unlock-alt"></i> UNLOCK</button>
+        <a id="adminTgLink" href="#" target="_blank" class="get-pass-link"><i class="fab fa-telegram"></i> GET PASSWORD</a>
+    </div>
+</div>
+
+<div id="mainApp" class="container hidden">
+    <section id="sec-click" class="tab-content">
+        <div class="card" style="position: relative;">
+            <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Exit</button>
+            <p style="font-size: 10px; margin-top: 8px; text-align: right;"><i class="far fa-clock"></i> Session: <span id="openTimeText">--</span> - <span id="closeTimeText">--</span></p>
+            <h3 style="color:#FBBF24; text-align: center;"><i class=""></i>  🐍SNAKE RUNING</h3>
+            <div style="display: flex; justify-content: space-between; margin: 20px 0 10px;">
+                <div class="stat-box"><small>⚔️ YOUR ID</small><div id="myUID" style="font-size:13px;">--</div></div>
+                <div class="stat-box"><small>🏆 HIGH SCORE</small><div id="myBest">0</div></div>
+            </div>
+            <div class="game-canvas-wrapper">
+                <canvas id="snakeCanvas" width="320" height="320"></canvas>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 12px; margin: 8px 0;">
+                <div class="stat-box"><small>🐍 SCORE</small><div id="snakeScore">0</div></div>
+                <div class="stat-box"><small>⭐ LEVEL</small><div id="snakeLevel">0</div></div>
+                <div class="stat-box"><small>⏱️ TIME</small><div id="snakeTimer">15s</div></div>
+            </div>
+            <button id="gameBtn" class="btn-premium"><i class="fas fa-play"></i> START </button>
+            <p id="timerText" style="margin-top: 12px; text-align: center;">⚡ SNAKE FOLLOW ACCORDING BUTTONS</p>
+            <div style="display: flex; justify-content: center; gap: 16px; margin-top: 10px;">
+                <button class="btn-premium" style="padding: 8px 20px; width: auto;" onclick="snakeHandleInput('LEFT')">LEFT</button>
+                <button class="btn-premium" style="padding: 8px 20px; width: auto;" onclick="snakeHandleInput('UP')">UP</button>
+                <button class="btn-premium" style="padding: 8px 20px; width: auto;" onclick="snakeHandleInput('DOWN')">DOWN</button>
+                <button class="btn-premium" style="padding: 8px 20px; width: auto;" onclick="snakeHandleInput('RIGHT')">RIGHT</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="sec-milestone" class="tab-content hidden">
+        <div class="card"><h3 style="color:#FBBF24;"><i class="fas fa-chart-line"></i>  PRIZES</h3>
+        <div id="currentStatus" class="active-milestone">🏅 ...</div>
+        <table class="m-table"><thead><tr><th>👥 TARGET USERS</th><th>🏅 WINNERS</th><th>💰 REWARD (₹)</th></tr></thead><tbody id="milestoneBody"></tbody></table></div>
+    </section>
+    <section id="sec-leader" class="tab-content hidden">
+        <div class="card"><h3 style="color:#FBBF24;">🌍 GLOBAL RANKINGS</h3><div><i class="fas fa-users"></i> Total Users: <span id="totalUserCount">0</span></div><div id="leaderList" style="max-height: 430px; overflow-y: auto;"></div></div>
+    </section>
+    <section id="sec-gift" class="tab-content hidden">
+        <div class="card"><h3 style="color:#4ADE80;"><i class="fas fa-gift"></i> MY REWARDS</h3><p style="font-size:11px;">🎁 One‑click any card → copy code</p><div id="giftContainer"></div></div>
+    </section>
+</div>
+<nav class="bottom-nav hidden" id="bottomNav">
+    <div class="nav-item active" onclick="showTab('sec-click', this)"><i class="fas fa-gamepad"></i>Play</div>
+    <div class="nav-item" onclick="showTab('sec-milestone', this)"><i class="fas fa-bullseye"></i>Roadmap</div>
+    <div class="nav-item" onclick="showTab('sec-leader', this)"><i class="fas fa-trophy"></i>Ranks</div>
+    <div class="nav-item" onclick="showTab('sec-gift', this)"><i class="fas fa-wallet"></i>Gifts</div>
+</nav>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, onValue, get, remove, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = { apiKey: "AIzaSyAqNQ8XjKDCQjTbqNs3aVBicqy0Qsc3QkM", databaseURL: "https://hello-92f11-default-rtdb.asia-southeast1.firebasedatabase.app", };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const MY_ID = localStorage.getItem("permanentUID") || "SLASHER_" + Math.floor(1 + Math.random() * 9000000000);
+    localStorage.setItem("permanentUID", MY_ID);
+    let ADMIN_SETTINGS = { gameDuration: 15, showLimit: 200, winAmount: 10, milestones: {100:{wins:10,price:50},250:{wins:20,price:150},500:{wins:40,price:300}}, openTime: "00:00", closeTime: "23:59" };
+
+    // ======================= SNAKE ENGINE =======================
+    const canvas = document.getElementById('snakeCanvas');
+    const ctx = canvas.getContext('2d');
+    const grid = 16;
+    let snake, food, goldenFood, particles, score, level, timeLeft, gameActive, isPaused, direction, nextDir, gameSpeed, gameLoopId, countdownInterval;
+    let snakeGameRunning = false;
+
+    function initSnakeGame() {
+        if (snakeGameRunning) return;
+        snakeGameRunning = true;
+        score = 0;
+        level = 1;
+        timeLeft = ADMIN_SETTINGS.gameDuration || 15;
+        gameSpeed = 200;
+        direction = 'RIGHT';
+        nextDir = 'RIGHT';
+        gameActive = true;
+        isPaused = false;
+        snake = [{x: 160, y: 160}, {x: 144, y: 160}, {x: 128, y: 160}];
+        particles = [];
+        spawnFood(false);
+        goldenFood = null;
+        updateSnakeUI();
+        if (countdownInterval) clearInterval(countdownInterval);
+        countdownInterval = setInterval(() => {
+            if (gameActive && !isPaused && snakeGameRunning) {
+                timeLeft--;
+                document.getElementById('snakeTimer').innerText = timeLeft + "s";
+                if (timeLeft <= 0) gameOverSnake("TIME EXPIRED");
+            }
+        }, 1000);
+        if (gameLoopId) cancelAnimationFrame(gameLoopId);
+        function gameLoop(timestamp) {
+            if (!snakeGameRunning) return;
+            if (!gameActive || isPaused) { gameLoopId = requestAnimationFrame(gameLoop); return; }
+            if (!window._lastTimestamp) window._lastTimestamp = timestamp;
+            if (timestamp - window._lastTimestamp > gameSpeed) {
+                window._lastTimestamp = timestamp;
+                updateSnakeLogic();
+            }
+            drawSnake();
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+        window._lastTimestamp = 0;
+        gameLoopId = requestAnimationFrame(gameLoop);
+    }
+
+    function spawnFood(isGolden = false) {
+        const x = Math.floor(Math.random() * (canvas.width/grid)) * grid;
+        const y = Math.floor(Math.random() * (canvas.height/grid)) * grid;
+        if(isGolden) goldenFood = {x, y, timer: 40};
+        else food = {x, y};
+    }
+
+    function updateSnakeLogic() {
+        if (!gameActive) return;
+        direction = nextDir;
+        const head = {x: snake[0].x, y: snake[0].y};
+        if (direction === 'UP') head.y -= grid;
+        if (direction === 'DOWN') head.y += grid;
+        if (direction === 'LEFT') head.x -= grid;
+        if (direction === 'RIGHT') head.x += grid;
+        if (head.x < 0) head.x = canvas.width - grid;
+        if (head.x >= canvas.width) head.x = 0;
+        if (head.y < 0) head.y = canvas.height - grid;
+        if (head.y >= canvas.height) head.y = 0;
+        if (snake.some(p => p.x === head.x && p.y === head.y)) { gameOverSnake("CRASHED!"); return; }
+        snake.unshift(head);
+        let ate = false;
+        if (head.x === food.x && head.y === food.y) {
+            score += 1;
+            timeLeft = Math.min(timeLeft + 3, 99);
+            createParticlesEffect(food.x, food.y, '#4ade80');
+            spawnFood(false);
+            ate = true;
+            if (score % 50 === 0 && level < 15) { level++; gameSpeed = Math.max(70, gameSpeed - 8); spawnFood(true); }
+        } else if (goldenFood && head.x === goldenFood.x && head.y === goldenFood.y) {
+            score += 5;
+            timeLeft = Math.min(timeLeft + 10, 99);
+            createParticlesEffect(goldenFood.x, goldenFood.y, '#fbbf24');
+            goldenFood = null;
+            ate = true;
+        }
+        if (!ate) snake.pop();
+        if (goldenFood) { goldenFood.timer--; if (goldenFood.timer <= 0) goldenFood = null; }
+        updateSnakeUI();
+    }
+
+    function createParticlesEffect(x, y, color) {
+        for(let i=0;i<10;i++) particles.push({ x, y, vx: (Math.random()-0.5)*4, vy: (Math.random()-0.5)*4, life: 1, color });
+    }
+
+    function drawSnake() {
+        ctx.fillStyle = '#080c14';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ff0055';
+        ctx.shadowBlur = 6; ctx.shadowColor = '#ff0055';
+        ctx.beginPath(); ctx.arc(food.x+8, food.y+8, 6, 0, Math.PI*2); ctx.fill();
+        if(goldenFood) {
+            ctx.fillStyle = '#ffcc00'; ctx.shadowColor = '#ffcc00';
+            ctx.beginPath(); ctx.arc(goldenFood.x+8, goldenFood.y+8, 8, 0, Math.PI*2); ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+        snake.forEach((p,i) => {
+            ctx.fillStyle = i===0 ? '#00ff88' : '#1a7f4a';
+            ctx.beginPath(); ctx.roundRect(p.x+1, p.y+1, grid-2, grid-2, i===0?6:3); ctx.fill();
+            if(i===0){ ctx.fillStyle = 'white'; ctx.fillRect(p.x+4, p.y+4, 3, 3); ctx.fillRect(p.x+10, p.y+4, 3, 3); }
+        });
+        particles.forEach((p,i) => { p.x+=p.vx; p.y+=p.vy; p.life-=0.02; ctx.fillStyle=p.color; ctx.globalAlpha=p.life; ctx.fillRect(p.x, p.y, 3,3); if(p.life<=0) particles.splice(i,1); });
+        ctx.globalAlpha=1;
+    }
+
+    function updateSnakeUI() {
+        document.getElementById('snakeScore').innerText = score;
+        document.getElementById('snakeLevel').innerText = level;
+        document.getElementById('snakeTimer').innerText = timeLeft + "s";
+    }
+
+    async function gameOverSnake(msg) {
+        if(!gameActive) return; gameActive = false; snakeGameRunning = false;
+        if(countdownInterval) clearInterval(countdownInterval);
+        if(gameLoopId) cancelAnimationFrame(gameLoopId);
+        const finalScore = score;
+        const scoreRef = ref(db, `leaderboard/${MY_ID}`);
+        const snap = await get(scoreRef);
+        const best = (snap.val() && snap.val().score) ? snap.val().score : 0;
+        if (finalScore > best) await set(scoreRef, { uid: MY_ID, score: finalScore });
+        await set(ref(db, `userLogs/${MY_ID}`), { uid: MY_ID, score: finalScore, duration: ADMIN_SETTINGS.gameDuration, game: "Snake", timestamp: new Date().toLocaleString() });
+        document.getElementById('gameBtn').disabled = false;
+        document.getElementById('gameBtn').innerHTML = '<i class="fas fa-play"></i> PLAY AGAIN';
+        document.getElementById('myBest').innerText = finalScore > best ? finalScore : best;
+        alert(`${msg}\n🐍 Final Score: ${finalScore}`);
+        checkAppStatus();
+    }
+
+    window.snakeHandleInput = (dir) => {
+        if (!snakeGameRunning || !gameActive || isPaused) return;
+        if (dir === 'UP' && direction !== 'DOWN') nextDir = 'UP';
+        if (dir === 'DOWN' && direction !== 'UP') nextDir = 'DOWN';
+        if (dir === 'LEFT' && direction !== 'RIGHT') nextDir = 'LEFT';
+        if (dir === 'RIGHT' && direction !== 'LEFT') nextDir = 'RIGHT';
+    };
+
+    window.startSnakeGame = () => {
+        if (snakeGameRunning && gameActive) return;
+        if (countdownInterval) clearInterval(countdownInterval);
+        if (gameLoopId) cancelAnimationFrame(gameLoopId);
+        snakeGameRunning = false;
+        initSnakeGame();
+        document.getElementById('gameBtn').disabled = true;
+        document.getElementById('gameBtn').innerHTML = '<i class="fas fa-fist-raised"></i> SNAKING...';
+    };
+    document.getElementById('gameBtn').onclick = startSnakeGame;
+
+    // ==================== Firebase & Legacy features ====================
+    function showCopyToast(msg) { const t=document.createElement('div'); t.className='copy-toast'; t.innerHTML=`<i class="fas fa-copy"></i> ${msg}`; document.body.appendChild(t); setTimeout(()=>t.remove(),1500); }
+    function attachOneClickCopy() { document.getElementById('giftContainer').addEventListener('click',(e)=>{ let card=e.target.closest('.gift-card'); if(card){ let code=card.querySelector('.copy-code-text')?.getAttribute('data-code')||card.querySelector('.copy-code-text')?.innerText; if(code){ navigator.clipboard.writeText(code); showCopyToast(`✅ "${code}" copied`); } } }); }
+
+    onValue(ref(db, 'settings'), (snap) => {
+        const data = snap.val() || {};
+        ADMIN_SETTINGS = {...ADMIN_SETTINGS, ...data};
+        document.getElementById('openTimeText').innerText = data.openTime || "00:00";
+        document.getElementById('closeTimeText').innerText = data.closeTime || "23:59";
+        document.getElementById('adminTgLink').href = data.tgLink || "#";
+        if(data.forceLogoutKey && data.forceLogoutKey != localStorage.getItem("lastLogoutKey")) { localStorage.setItem("lastLogoutKey", data.forceLogoutKey); logout(); }
+        checkAppStatus();
+    });
+    if(localStorage.getItem("isLoggedIn") === "true") onValue(ref(db, `forceLogout/${MY_ID}`), (snap) => { if(snap.val()===true) { remove(ref(db, `forceLogout/${MY_ID}`)); logout(); } });
+
+    function updateMilestonesUI(userCount) {
+        const ms = ADMIN_SETTINGS.milestones || {};
+        const body = document.getElementById('milestoneBody');
+        body.innerHTML = '';
+        let currentUnlocked = 0;
+        Object.keys(ms).sort((a,b)=>Number(a)-Number(b)).forEach(target => {
+            const reached = userCount >= parseInt(target);
+            if(reached) currentUnlocked = ms[target].wins;
+            body.innerHTML += `<tr style="background:${reached ? '#0f2b1f30' : 'transparent'}"><td> ${target} users ${reached ? '✅' : ''} </td><td> ${ms[target].wins} winners </td><td> ₹${ms[target].price} </td></tr>`;
+        });
+        document.getElementById('currentStatus').innerHTML = `<i class="fas fa-crown"></i> ${currentUnlocked} Winners Unlocked <i class="fas fa-gem"></i>`;
+    }
+
+    function initDataSync() {
+        onValue(ref(db, 'leaderboard'), (snap) => {
+            const data = snap.val() || {};
+            const users = Object.values(data).sort((a,b)=>b.score - a.score);
+            document.getElementById('totalUserCount').innerText = users.length;
+            updateMilestonesUI(users.length);
+            const winnersLimit = (ADMIN_SETTINGS.milestones && Object.values(ADMIN_SETTINGS.milestones).reduce((acc, cur, idx, arr) => users.length >= Object.keys(ADMIN_SETTINGS.milestones||{})[idx] ? cur.wins : acc, 0)) || 0;
+            const listDiv = document.getElementById('leaderList');
+            listDiv.innerHTML = '';
+            users.slice(0, ADMIN_SETTINGS.showLimit || 200).forEach((u, idx) => {
+                const rank = idx+1;
+                const isWinner = rank <= winnersLimit;
+                const highlight = u.uid === MY_ID ? 'style="background: linear-gradient(95deg,#fbbf2420,#2a1e0a); border-left:4px solid #fbbf24;"' : '';
+                listDiv.innerHTML += `<div class="leader-item" ${highlight}><div style="display:flex; justify-content:space-between;"><span><strong>#${rank}</strong> ${u.uid === MY_ID ? '🔥 YOU' : u.uid.slice(0,12)}</span><span><span class="prize-tag ${isWinner ? 'tag-win' : 'tag-lock'}">${isWinner ? '₹'+ADMIN_SETTINGS.winAmount : 'locked'}</span> <span style="color:#4ade80;">${u.score}</span></span></div></div>`;
+                if(u.uid === MY_ID) document.getElementById('myBest').innerText = u.score;
+            });
+        });
+        onValue(ref(db, `gifts/${MY_ID}`), (snap) => {
+            const gifts = snap.val();
+            const container = document.getElementById('giftContainer');
+            if(!gifts || Object.keys(gifts).length === 0) { container.innerHTML = "<div style='padding:24px; text-align:center;'>🎁 No rewards yet.<br><small>Win rank prizes after session ends</small></div>"; return; }
+            container.innerHTML = Object.values(gifts).map(g => `<div class="gift-card" data-code="${g.code}"><i class="fas fa-ticket-alt"></i><div>🎁 REWARD ₹${g.amount}</div><div class="code-block"><span class="copy-code-text" data-code="${g.code}">${g.code}</span> <i class="fas fa-copy"></i></div><div class="click-hint">📋 Click card → copy</div></div>`).join('');
+            attachOneClickCopy();
+        });
+    }
+
+    function checkAppStatus() {
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+        const closed = timeStr < ADMIN_SETTINGS.openTime || timeStr > ADMIN_SETTINGS.closeTime;
+        document.getElementById('statusBanner').style.display = closed ? 'flex' : 'none';
+        const btn = document.getElementById('gameBtn');
+        if(closed && btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-ban"></i> SESSION CLOSED'; if(snakeGameRunning) gameOverSnake("Session closed"); }
+        else if(btn && !snakeGameRunning) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-play"></i> START SNAKE'; }
+    }
+
+    window.login = async () => {
+        const pass = document.getElementById('passInput').value.trim();
+        const snap = await get(ref(db, 'allPasswords'));
+        let valid = false;
+        if(snap.val()) for(let k in snap.val()) if(snap.val()[k].code === pass) { await remove(ref(db, `allPasswords/${k}`)); valid=true; break; }
+        if(valid) { localStorage.setItem("isLoggedIn","true"); location.reload(); } else alert("❌ Invalid Password! Join Telegram.");
+    };
+    window.logout = () => { localStorage.removeItem("isLoggedIn"); location.reload(); };
+    window.showTab = (id, el) => {
+        document.querySelectorAll('.tab-content').forEach(t=>t.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+        document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+        el.classList.add('active');
+    };
+    if(localStorage.getItem("isLoggedIn") === "true") {
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        document.getElementById('bottomNav').classList.remove('hidden');
+        document.getElementById('myUID').innerText = MY_ID;
+        initDataSync();
+        setInterval(checkAppStatus, 3000);
+        window.addEventListener('keydown', (e) => { const key=e.key.replace('Arrow','').toUpperCase(); if(['UP','DOWN','LEFT','RIGHT'].includes(key)) snakeHandleInput(key); });
+    }
+    if (!window.CanvasRenderingContext2D.prototype.roundRect) {
+        CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) { if (w < 2 * r) r = w / 2; if (h < 2 * r) r = h / 2; this.moveTo(x+r, y); this.lineTo(x+w-r, y); this.quadraticCurveTo(x+w, y, x+w, y+r); this.lineTo(x+w, y+h-r); this.quadraticCurveTo(x+w, y+h, x+w-r, y+h); this.lineTo(x+r, y+h); this.quadraticCurveTo(x, y+h, x, y+h-r); this.lineTo(x, y+r); this.quadraticCurveTo(x, y, x+r, y); return this; };
+    }
+</script>
+</body>
+  </html>
